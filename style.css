@@ -1,0 +1,13 @@
+.tab-btn[data-active="true"] {
+  transform: scale(1.05);
+}
+input[type="range"] {
+  height: 10px;
+  border-radius: 9999px;
+}
+input[type="range"]::-webkit-slider-thumb {
+  background: #e94560;
+  border: 4px solid white;
+  height: 24px;
+  width: 24px;
+}

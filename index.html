@@ -1,107 +1,65 @@
 <!DOCTYPE html>
-<html lang="en" class="scroll-smooth">
+<html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Endfield Pull Odds · F2P Simulator</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Endfield Pull Odds Simulator</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <link rel="stylesheet" href="style.css">
+  <style>
+    body { background: linear-gradient(to bottom, #0f0f1a, #1a1a2e); color: #e0e0ff; font-family: system-ui, sans-serif; }
+    .accent { accent-color: #e94560; }
+    input[type=range]::-webkit-slider-thumb { background: #e94560; border: 3px solid white; }
+  </style>
 </head>
-<body class="bg-gradient-to-b from-[#0f0f1a] to-[#1a1a2e] text-gray-100 min-h-screen">
+<body class="min-h-screen p-4 md:p-8">
 
-  <header class="bg-gradient-to-r from-[#0f3460] to-[#16213e] border-b border-[#e94560]/40 py-5 px-6 sticky top-0 z-10 shadow-lg">
-    <div class="max-w-6xl mx-auto flex items-center justify-between">
-      <h1 class="text-2xl md:text-3xl font-bold tracking-tight flex items-center gap-3">
-        <span class="text-[#e94560]">🎲</span> Endfield Pull Odds
-      </h1>
-      <a href="https://ko-fi.com/YOUR_KOFI_USERNAME" target="_blank"
-         class="bg-[#e94560] hover:bg-[#ff5e7a] px-5 py-2.5 rounded-lg font-medium transition flex items-center gap-2 shadow-md">
-        ☕ Support
-      </a>
-    </div>
-  </header>
+  <div class="max-w-4xl mx-auto bg-gray-900/60 backdrop-blur rounded-2xl p-6 md:p-10 border border-purple-500/30 shadow-2xl">
+    <h1 class="text-3xl font-bold text-center mb-8 text-purple-400">Endfield Pull Odds Simulator</h1>
 
-  <main class="max-w-6xl mx-auto px-4 py-8">
-
-    <div class="flex flex-wrap gap-3 mb-8 justify-center md:justify-start">
-      <button data-tab="beginner" class="tab-btn px-6 py-3 rounded-full font-medium transition-all bg-[#16213e] hover:bg-[#1e2a52] data-[active=true]:bg-[#e94560] data-[active=true]:text-white data-[active=true]:shadow-lg data-[active=true]:shadow-[#e94560]/30">
-        Beginner Banner
-      </button>
-      <button data-tab="basic" class="tab-btn px-6 py-3 rounded-full font-medium transition-all bg-[#16213e] hover:bg-[#1e2a52] data-[active=true]:bg-[#e94560] data-[active=true]:text-white data-[active=true]:shadow-lg data-[active=true]:shadow-[#e94560]/30">
-        Basic Banner
-      </button>
-      <button data-tab="limited" class="tab-btn px-6 py-3 rounded-full font-medium transition-all bg-[#16213e] hover:bg-[#1e2a52] data-[active=true]:bg-[#e94560] data-[active=true]:text-white data-[active=true]:shadow-lg data-[active=true]:shadow-[#e94560]/30">
-        Limited Banner
-      </button>
+    <!-- Tabs -->
+    <div class="flex flex-wrap justify-center gap-4 mb-8">
+      <button data-tab="beginner" class="tab px-6 py-3 rounded-full bg-gray-800 hover:bg-gray-700 data-[active]:bg-purple-600 data-[active]:text-white transition">Beginner</button>
+      <button data-tab="basic" class="tab px-6 py-3 rounded-full bg-gray-800 hover:bg-gray-700 data-[active]:bg-purple-600 data-[active]:text-white transition">Basic</button>
+      <button data-tab="limited" class="tab px-6 py-3 rounded-full bg-gray-800 hover:bg-gray-700 data-[active]:bg-purple-600 data-[active]:text-white transition">Limited</button>
     </div>
 
-    <div id="tab-content" class="space-y-8">
+    <!-- Inputs -->
+    <div class="space-y-6 mb-8">
+      <div>
+        <label class="block text-sm mb-2">Oroberyl Owned</label>
+        <input type="number" id="oroberryl" value="0" min="0" class="w-full p-3 bg-gray-800 border border-purple-500/50 rounded-lg text-xl">
+      </div>
 
-      <!-- Shared Inputs -->
-      <section class="bg-[#16213e]/80 backdrop-blur-sm border border-[#e94560]/20 rounded-2xl p-6 md:p-8 shadow-xl">
-        <h2 class="text-xl font-semibold mb-6 text-[#e94560]">Your Resources</h2>
-        <div class="grid md:grid-cols-3 gap-6">
+      <div>
+        <label class="block text-sm mb-2">Current Pity</label>
+        <input type="range" id="pity" min="0" max="79" value="0" class="w-full accent">
+        <div id="pityVal" class="text-center text-xl mt-2 text-purple-300">0</div>
+      </div>
 
-          <div>
-            <label class="block text-sm text-gray-300 mb-2">Oroberyl Owned</label>
-            <input type="number" id="oroberryl" min="0" value="0" step="100"
-                   class="w-full bg-[#0f0f1a] border border-[#e94560]/40 rounded-lg px-4 py-3 text-2xl font-mono focus:outline-none focus:border-[#e94560] focus:ring-2 focus:ring-[#e94560]/30 transition"
-                   placeholder="e.g. 60000"/>
-            <p class="text-xs text-gray-500 mt-1">500 Oroberyl = 1 pull</p>
-          </div>
+      <div id="sparkSection" class="hidden">
+        <label class="block text-sm mb-2">Current Spark (Limited only)</label>
+        <input type="range" id="spark" min="0" max="119" value="0" class="w-full accent">
+        <div id="sparkVal" class="text-center text-xl mt-2 text-purple-300">0</div>
+      </div>
 
-          <div>
-            <label class="block text-sm text-gray-300 mb-2">Current Pity (since last 6★)</label>
-            <input type="range" id="pity" min="0" max="79" value="0" class="w-full accent-[#e94560]"/>
-            <div class="text-center mt-2 text-xl font-mono text-[#e94560]" id="pityDisplay">0</div>
-          </div>
-
-          <div id="sparkGroup" class="hidden">
-            <label class="block text-sm text-gray-300 mb-2">Spark Progress (this banner only)</label>
-            <input type="range" id="spark" min="0" max="119" value="0" class="w-full accent-[#e94560]"/>
-            <div class="text-center mt-2 text-xl font-mono text-[#e94560]" id="sparkDisplay">0</div>
-          </div>
-
-        </div>
-
-        <div class="mt-6 p-4 bg-[#0f0f1a]/60 rounded-xl text-center">
-          <div class="text-sm text-gray-300">Max affordable pulls</div>
-          <div id="maxPulls" class="text-4xl font-bold text-[#e94560] mt-1">0</div>
-        </div>
-
-        <!-- Simulate button -->
-        <div class="mt-8 flex justify-center">
-          <button id="simulateBtn"
-                  class="bg-[#e94560] hover:bg-[#ff5e7a] px-10 py-5 rounded-xl font-bold text-xl shadow-lg shadow-[#e94560]/40 transition transform hover:scale-105">
-            Calculate Odds (10,000 Simulations)
-          </button>
-        </div>
-      </section>
-
-      <!-- Results -->
-      <section id="resultsSection" class="hidden bg-[#16213e]/80 backdrop-blur-sm border border-[#e94560]/20 rounded-2xl p-6 md:p-8 shadow-xl">
-        <h2 class="text-xl font-semibold mb-6 text-[#e94560]">Your Estimated Pull Odds</h2>
-
-        <div id="warning" class="hidden mb-6 p-4 bg-red-900/50 border-l-4 border-red-500 rounded-lg">
-          <strong class="text-red-300 block mb-2">⚠️ High Risk Pull!</strong>
-          <p id="warningText" class="text-red-200"></p>
-        </div>
-
-        <div class="grid md:grid-cols-2 gap-6 mb-8" id="keyStats"></div>
-
-        <div class="bg-[#0f0f1a]/60 p-5 rounded-xl">
-          <h3 class="text-lg font-medium mb-4">Distribution of Pulls Needed (10k sims)</h3>
-          <canvas id="probChart" height="220"></canvas>
-        </div>
-      </section>
-
+      <div class="text-center text-lg">
+        Max Pulls: <span id="maxPulls" class="font-bold text-purple-300">0</span>
+      </div>
     </div>
-  </main>
 
-  <footer class="text-center py-8 text-gray-500 text-sm border-t border-gray-800 mt-12">
-    Not official · Based on Feb 2026 community data (endfield.gg, Reddit, etc.)
-  </footer>
+    <!-- The missing button - now clearly here -->
+    <button id="calcBtn" class="w-full py-5 bg-purple-600 hover:bg-purple-500 rounded-xl text-xl font-bold transition">
+      Calculate Odds (10,000 Simulations)
+    </button>
+
+    <!-- Results -->
+    <div id="results" class="mt-10 hidden">
+      <div id="warning" class="hidden p-4 bg-red-900/50 border border-red-500 rounded-lg mb-6"></div>
+      <div id="stats" class="grid gap-6 md:grid-cols-2"></div>
+      <canvas id="chart" class="mt-8" height="200"></canvas>
+    </div>
+  </div>
 
   <script src="script.js"></script>
 </body>

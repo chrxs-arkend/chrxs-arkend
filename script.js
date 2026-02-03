@@ -1,107 +1,164 @@
-let currentTab = 'limited';
-let probChart = null;
+let currentBanner = null;
+let mode = 'forward'; // 'forward' or 'reverse'
+let chartInstance = null;
 
-let bannerConfig = {};
+const bannerSelect = document.getElementById('bannerSelect');
+const bannerInfo = document.getElementById('bannerInfo');
+const sparkContainer = document.getElementById('sparkContainer');
+const targetPullsContainer = document.getElementById('targetPullsContainer');
+const calculateBtn = document.getElementById('calculateBtn');
+const resultsArea = document.getElementById('resultsArea');
+const warningBox = document.getElementById('warningBox');
+
+// Populate banner dropdown
 fetch('banners.json')
   .then(r => r.json())
-  .then(data => { bannerConfig = data; updateUIForTab(); })
-  .catch(err => console.error(err));
-
-document.querySelectorAll('.tab-btn').forEach(btn => {
-  btn.addEventListener('click', () => {
-    document.querySelectorAll('.tab-btn').forEach(b => b.dataset.active = 'false');
-    btn.dataset.active = 'true';
-    currentTab = btn.dataset.tab;
-    updateUIForTab();
-    document.getElementById('resultsSection').classList.add('hidden');
+  .then(banners => {
+    banners.forEach(b => {
+      const opt = document.createElement('option');
+      opt.value = b.id;
+      opt.textContent = `${b.name} (${b.banner})`;
+      bannerSelect.appendChild(opt);
+    });
+    bannerSelect.value = 'laevatain'; // default
+    updateBanner();
   });
-});
 
-function updateUIForTab() {
-  const sparkGroup = document.getElementById('sparkGroup');
-  const pityMax = currentTab === 'beginner' ? 39 : 79;
-  document.getElementById('pity').max = pityMax;
-  document.getElementById('pity').value = Math.min(parseInt(document.getElementById('pity').value), pityMax);
+// Banner change
+bannerSelect.addEventListener('change', updateBanner);
 
-  if (currentTab === 'limited') {
-    sparkGroup.classList.remove('hidden');
-  } else {
-    sparkGroup.classList.add('hidden');
-  }
+function updateBanner() {
+  fetch('banners.json')
+    .then(r => r.json())
+    .then(banners => {
+      currentBanner = banners.find(b => b.id === bannerSelect.value);
+      bannerInfo.innerHTML = `
+        <div>
+          <div class="text-sm text-gray-400">Banner</div>
+          <div class="text-xl font-medium">${currentBanner.banner}</div>
+        </div>
+        <div class="text-right">
+          <div class="text-sm text-gray-400">Featured</div>
+          <div class="text-xl font-medium text-[#e94560]">${currentBanner.featured}</div>
+        </div>
+      `;
+
+      sparkContainer.classList.toggle('hidden', !currentBanner.spark);
+      if (currentBanner.spark) {
+        document.getElementById('spark').max = currentBanner.spark - 1;
+      }
+
+      updateDisplays();
+      resultsArea.classList.add('hidden');
+    });
+}
+
+// Mode toggle
+document.getElementById('modeForward').addEventListener('click', () => setMode('forward'));
+document.getElementById('modeReverse').addEventListener('click', () => setMode('reverse'));
+
+function setMode(newMode) {
+  mode = newMode;
+  document.getElementById('modeForward').dataset.active = newMode === 'forward';
+  document.getElementById('modeReverse').dataset.active = newMode === 'reverse';
+
+  targetPullsContainer.classList.toggle('hidden', newMode !== 'reverse');
+  sparkContainer.classList.toggle('hidden', newMode === 'reverse' || !currentBanner?.spark);
 
   updateDisplays();
+  resultsArea.classList.add('hidden');
 }
 
-const pityInput = document.getElementById('pity');
-pityInput.addEventListener('input', updateDisplays);
-
-const sparkInput = document.getElementById('spark');
-sparkInput.addEventListener('input', updateDisplays);
-
-const oroInput = document.getElementById('oroberryl');
-oroInput.addEventListener('input', updateDisplays);
+// Live updates
+['oro', 'premium', 'pity', 'spark', 'targetPulls'].forEach(id => {
+  const el = document.getElementById(id);
+  if (el) el.addEventListener('input', updateDisplays);
+});
 
 function updateDisplays() {
-  document.getElementById('pityDisplay').textContent = pityInput.value;
-  document.getElementById('sparkDisplay').textContent = sparkInput.value;
+  const pity = document.getElementById('pity');
+  const spark = document.getElementById('spark');
+  document.getElementById('pityVal').textContent = pity.value;
+  if (spark) document.getElementById('sparkVal').textContent = spark.value;
 
-  const oro = parseInt(oroInput.value) || 0;
-  const max = Math.floor(oro / 500);
-  document.getElementById('maxPulls').textContent = max.toLocaleString();
+  const oro = parseInt(document.getElementById('oro').value) || 0;
+  const premium = parseInt(document.getElementById('premium').value) || 0;
+  const totalOro = oro + (premium * 500);
+  const maxPulls = Math.floor(totalOro / 500);
+
+  if (mode === 'forward') {
+    document.getElementById('maxPulls')?.remove(); // if exists from old version
+  }
 }
 
-document.getElementById('simulateBtn').addEventListener('click', () => {
-  const pity = parseInt(pityInput.value);
-  const spark = currentTab === 'limited' ? parseInt(sparkInput.value) : 0;
-  const oro = parseInt(oroInput.value) || 0;
-  const maxPulls = Math.floor(oro / 500);
+// Calculate button
+calculateBtn.addEventListener('click', () => {
+  if (!currentBanner) return alert('Select a banner first');
 
-  if (maxPulls < 1) return alert("Need at least 500 Oroberyl.");
+  const pity = parseInt(document.getElementById('pity').value);
+  const spark = currentBanner.spark ? parseInt(document.getElementById('spark').value) : 0;
+  const oro = parseInt(document.getElementById('oro').value) || 0;
+  const premium = parseInt(document.getElementById('premium').value) || 0;
+  const totalOro = oro + (premium * 500);
+  const maxPullsForward = Math.floor(totalOro / 500);
 
   const worker = new Worker('worker.js');
-  worker.postMessage({ tab: currentTab, pity, spark, maxPulls, simCount: 10000 });
+
+  if (mode === 'forward') {
+    worker.postMessage({
+      mode: 'forward',
+      bannerType: currentBanner.type,
+      sparkTarget: currentBanner.spark || Infinity,
+      pity,
+      spark,
+      maxPulls: maxPullsForward,
+      simCount: 10000
+    });
+  } else {
+    const target = parseInt(document.getElementById('targetPulls').value);
+    if (target < 1) return alert('Enter a valid target pull count');
+    worker.postMessage({
+      mode: 'reverse',
+      bannerType: currentBanner.type,
+      sparkTarget: currentBanner.spark || Infinity,
+      pity,
+      spark,
+      targetPulls: target
+    });
+  }
 
   worker.onmessage = e => {
-    const { avg, successRate, histo } = e.data;
+    const { result, histo, warning } = e.data;
+    resultsArea.classList.remove('hidden');
 
-    document.getElementById('resultsSection').classList.remove('hidden');
-
-    const featured = currentTab === 'limited' ? bannerConfig.limited.current.featured :
-                     currentTab === 'beginner' ? bannerConfig.beginner.featured : bannerConfig.basic.featured;
-
-    const oneIn = avg === Infinity ? 'Never (no guarantee)' : `1 in ${Math.round(avg)}`;
-
-    document.getElementById('keyStats').innerHTML = `
-      <div class="bg-[#0f0f1a]/70 p-6 rounded-xl text-center border border-[#e94560]/30">
-        <div class="text-sm text-gray-300 mb-2">On average</div>
-        <div class="text-4xl font-bold text-[#e94560]">${oneIn}</div>
-        <div class="text-base mt-2">pulls results in ${featured}</div>
-      </div>
-      <div class="bg-[#0f0f1a]/70 p-6 rounded-xl text-center border border-[#e94560]/30">
-        <div class="text-sm text-gray-300 mb-2">Chance with your Oroberyl</div>
-        <div class="text-4xl font-bold text-[#e94560]">${successRate.toFixed(1)}%</div>
-      </div>
-    `;
-
-    const warningEl = document.getElementById('warning');
-    const warningText = document.getElementById('warningText');
-    if (currentTab === 'limited' && (spark + maxPulls) < 120) {
-      warningEl.classList.remove('hidden');
-      warningText.textContent = `Only ~${spark + maxPulls} pulls possible. Spark (120) does NOT carry over — very risky without enough for guarantee!`;
+    if (warning) {
+      warningBox.classList.remove('hidden');
+      warningBox.innerHTML = warning;
     } else {
-      warningEl.classList.add('hidden');
+      warningBox.classList.add('hidden');
     }
 
-    const ctx = document.getElementById('probChart').getContext('2d');
-    if (probChart) probChart.destroy();
-    probChart = new Chart(ctx, {
+    document.getElementById('mainResult').textContent = result.main;
+    document.getElementById('subResult').textContent = result.sub;
+
+    if (chartInstance) chartInstance.destroy();
+    chartInstance = new Chart(document.getElementById('distChart'), {
       type: 'bar',
       data: {
-        labels: histo.map((_,i) => i+1),
-        datasets: [{ label: 'Frequency', data: histo, backgroundColor: '#e94560aa', borderColor: '#e94560', borderWidth: 1 }]
+        labels: histo.map((_, i) => i + 1),
+        datasets: [{
+          label: 'Frequency',
+          data: histo,
+          backgroundColor: '#e94560aa',
+          borderColor: '#e94560',
+          borderWidth: 1
+        }]
       },
       options: {
-        scales: { y: { beginAtZero: true }, x: { title: { display: true, text: 'Pulls to target' } } },
+        scales: {
+          y: { beginAtZero: true, title: { display: true, text: 'Occurrences' } },
+          x: { title: { display: true, text: 'Pulls Required' } }
+        },
         plugins: { legend: { display: false } }
       }
     });

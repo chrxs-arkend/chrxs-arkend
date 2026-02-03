@@ -1,0 +1,45 @@
+{
+  "beginner": {
+    "name": "New Horizons Headhunting",
+    "type": "beginner",
+    "featured": "Guaranteed 6★ (pool)",
+    "hardPity": 40,
+    "spark": null,
+    "sparkGuaranteesFeatured": true,
+    "pityCarries": false
+  },
+  "basic": {
+    "name": "Basic Headhunting",
+    "type": "basic",
+    "featured": "Any standard 6★",
+    "hardPity": 80,
+    "spark": 300,
+    "sparkGuaranteesFeatured": false,  // selector instead
+    "pityCarries": true
+  },
+  "limited": [
+    {
+      "name": "Laevatain Headhunting",
+      "featured": "Laevatain",
+      "active": true,
+      "endDate": "2026-02-07",
+      "hardPity": 80,
+      "spark": 120,
+      "sparkGuaranteesFeatured": true,
+      "pityCarries": true,
+      "featuredRateOn6Star": 0.5
+    },
+    {
+      "name": "Gilberta Headhunting (upcoming)",
+      "featured": "Gilberta",
+      "active": false,
+      "startDate": "2026-02-07"
+    },
+    {
+      "name": "Yvonne Headhunting (upcoming)",
+      "featured": "Yvonne",
+      "active": false,
+      "startDate": "2026-02-24"
+    }
+  ]
+}

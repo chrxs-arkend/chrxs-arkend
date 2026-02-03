@@ -1,22 +1,47 @@
-{
-  "beginner": {
-    "name": "New Horizons Headhunting (Beginner)",
-    "featured": "Guaranteed 6★ from beginner pool",
-    "hardPity": 40,
-    "spark": null
+[
+  {
+    "id": "laevatain",
+    "name": "Laevatain",
+    "banner": "Chartered Limited",
+    "featured": "Laevatain",
+    "spark": 120,
+    "pityCarry": true,
+    "type": "limited"
   },
-  "basic": {
-    "name": "Basic Headhunting (Permanent)",
-    "featured": "Any standard 6★",
-    "hardPity": 80,
-    "spark": null
+  {
+    "id": "gilberta",
+    "name": "Gilberta",
+    "banner": "Upcoming Limited",
+    "featured": "Gilberta",
+    "spark": 120,
+    "pityCarry": true,
+    "type": "limited"
   },
-  "limited": {
-    "current": {
-      "name": "Laevatain Chartered Headhunting",
-      "featured": "Laevatain",
-      "hardPity": 80,
-      "spark": 120
-    }
+  {
+    "id": "yvonne",
+    "name": "Yvonne",
+    "banner": "Upcoming Limited",
+    "featured": "Yvonne",
+    "spark": 120,
+    "pityCarry": true,
+    "type": "limited"
+  },
+  {
+    "id": "beginner",
+    "name": "Beginner Pool",
+    "banner": "New Horizons Headhunting",
+    "featured": "6★ Beginner Pool",
+    "spark": null,
+    "pityCarry": false,
+    "type": "beginner"
+  },
+  {
+    "id": "basic",
+    "name": "Basic Pool",
+    "banner": "Permanent Basic",
+    "featured": "Any Standard 6★",
+    "spark": null,
+    "pityCarry": true,
+    "type": "basic"
   }
-}
+]

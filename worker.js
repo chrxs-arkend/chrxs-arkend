@@ -1,69 +1,53 @@
-// worker.js - Background simulation
-
 self.onmessage = e => {
   const { tab, pity: startPity, spark: startSpark, maxPulls, simCount } = e.data;
 
-  const pullsToTarget = [];
+  const results = [];
 
   for (let i = 0; i < simCount; i++) {
-    const pulls = simulateOneRun(tab, startPity, startSpark, maxPulls);
-    if (pulls !== Infinity) pullsToTarget.push(pulls);
+    const pulls = runSimulation(tab, startPity, startSpark, maxPulls);
+    if (pulls !== Infinity) results.push(pulls);
   }
 
-  if (pullsToTarget.length === 0) {
-    self.postMessage({ avgToFeatured: Infinity, successRate: 0, histo: new Array(121).fill(0) });
-    return;
-  }
+  let avg = results.length ? results.reduce((a,b)=>a+b,0) / results.length : Infinity;
+  let success = results.filter(p => p <= maxPulls).length / simCount * 100;
 
-  const avg = pullsToTarget.reduce((a,b)=>a+b,0) / pullsToTarget.length;
-  const success = pullsToTarget.filter(p => p <= maxPulls).length / simCount * 100;
-
-  // Histogram up to 120+
   const histo = new Array(121).fill(0);
-  pullsToTarget.forEach(p => {
-    const bin = Math.min(p, 120);
-    histo[bin]++;
-  });
+  results.forEach(p => { const bin = Math.min(p, 120); histo[bin]++; });
 
-  self.postMessage({ avgToFeatured: avg, successRate: success, histo });
+  self.postMessage({ avg, successRate: success, histo });
 };
 
-function simulateOneRun(tab, startPity, startSpark, maxPulls) {
+function runSimulation(tab, startPity, startSpark, maxPulls) {
   let pity = startPity;
   let spark = startSpark;
   let pulls = 0;
 
   const isLimited = tab === 'limited';
-  const isBeginner = tab === 'beginner';
-
-  const hardPity = isBeginner ? 40 : 80;
+  const hardPity = tab === 'beginner' ? 40 : 80;
   const sparkTarget = isLimited ? 120 : Infinity;
 
   while (pulls < maxPulls) {
     pulls++;
     if (isLimited) spark++;
 
-    // Spark / beginner hard guarantee
-    if (spark >= sparkTarget || (isBeginner && pulls >= hardPity)) {
-      return pulls; // target achieved
+    if (spark >= sparkTarget || (tab === 'beginner' && pulls >= hardPity)) {
+      return pulls;
     }
 
-    // Normal 6★ roll
-    let rate = get6StarRate(pity);
+    let rate = pity < 65 ? 0.008 : Math.min(1, 0.008 + (pity - 64) * 0.05);
+
     if (Math.random() < rate) {
       pity = 0;
 
       if (isLimited) {
-        if (Math.random() < 0.5) return pulls; // won 50/50
-        // lost → continue
+        if (Math.random() < 0.5) return pulls; // win 50/50
       } else {
-        return pulls; // any 6★ is target for basic/beginner
+        return pulls; // any 6★ counts
       }
     } else {
       pity++;
     }
 
-    // Hard pity
     if (pity >= hardPity) {
       pity = 0;
       if (isLimited) {
@@ -74,11 +58,5 @@ function simulateOneRun(tab, startPity, startSpark, maxPulls) {
     }
   }
 
-  return Infinity; // failed
-}
-
-function get6StarRate(pity) {
-  if (pity < 65) return 0.008;
-  const extra = (pity - 64) * 0.05;
-  return Math.min(1, 0.008 + extra);
+  return Infinity;
 }

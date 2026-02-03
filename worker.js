@@ -1,60 +1,81 @@
 self.onmessage = e => {
-  const { tab, pity: startPity, spark: startSpark, maxPulls, simCount } = e.data;
+  const { mode, bannerType, sparkTarget, pity: startPity, spark: startSpark, maxPulls, targetPulls, simCount } = e.data;
+  let result = {};
+  let histo = new Array(121).fill(0);
+  let warning = null;
 
-  const results = [];
+  if (mode === 'forward') {
+    const pullsToTarget = [];
 
-  for (let i = 0; i < simCount; i++) {
-    const pulls = runSimulation(tab, startPity, startSpark, maxPulls);
-    if (pulls !== Infinity) results.push(pulls);
+    for (let i = 0; i < simCount; i++) {
+      const pulls = simulateRun(bannerType, startPity, startSpark, maxPulls, sparkTarget);
+      if (pulls !== Infinity) pullsToTarget.push(pulls);
+    }
+
+    const avg = pullsToTarget.length ? pullsToTarget.reduce((a,b)=>a+b,0) / pullsToTarget.length : Infinity;
+    const success = pullsToTarget.filter(p => p <= maxPulls).length / simCount * 100;
+
+    pullsToTarget.forEach(p => {
+      if (p <= 120) histo[p]++;
+      else histo[120]++;
+    });
+
+    const oneIn = avg === Infinity ? 'Never (no guarantee)' : `1 in ${Math.round(avg)}`;
+    const featured = bannerType === 'limited' ? 'the featured character' : bannerType === 'beginner' ? 'a beginner 6★' : 'a standard 6★';
+
+    result = {
+      main: oneIn,
+      sub: `pulls results in ${featured} on average`
+    };
+
+    if (bannerType === 'limited' && (startSpark + maxPulls) < sparkTarget) {
+      warning = `⚠️ Risky: You can only reach ${startSpark + maxPulls} pulls. Spark (${sparkTarget}) does NOT carry over to the next banner!`;
+    }
+  } else {
+    // Reverse: how much currency needed for target pulls
+    const pullsNeeded = targetPulls - startSpark;
+    const oroNeeded = pullsNeeded * 500;
+    const premiumNeeded = Math.ceil(oroNeeded / 500);
+
+    result = {
+      main: `${premiumNeeded.toLocaleString()} Premium`,
+      sub: `(${oroNeeded.toLocaleString()} Oroberyl) needed for ${targetPulls} pulls from current pity/spark`
+    };
+
+    if (bannerType === 'limited' && targetPulls > startSpark + 200) {
+      warning = `Note: Spark is only ${sparkTarget} — anything beyond is not guaranteed.`;
+    }
   }
 
-  let avg = results.length ? results.reduce((a,b)=>a+b,0) / results.length : Infinity;
-  let success = results.filter(p => p <= maxPulls).length / simCount * 100;
-
-  const histo = new Array(121).fill(0);
-  results.forEach(p => { const bin = Math.min(p, 120); histo[bin]++; });
-
-  self.postMessage({ avg, successRate: success, histo });
+  self.postMessage({ result, histo, warning });
 };
 
-function runSimulation(tab, startPity, startSpark, maxPulls) {
+function simulateRun(type, startPity, startSpark, maxPulls, sparkTarget) {
   let pity = startPity;
   let spark = startSpark;
   let pulls = 0;
 
-  const isLimited = tab === 'limited';
-  const hardPity = tab === 'beginner' ? 40 : 80;
-  const sparkTarget = isLimited ? 120 : Infinity;
+  const isLimited = type === 'limited';
+  const hardPity = type === 'beginner' ? 40 : 80;
 
   while (pulls < maxPulls) {
     pulls++;
     if (isLimited) spark++;
 
-    if (spark >= sparkTarget || (tab === 'beginner' && pulls >= hardPity)) {
-      return pulls;
-    }
+    if (spark >= sparkTarget) return pulls;
 
     let rate = pity < 65 ? 0.008 : Math.min(1, 0.008 + (pity - 64) * 0.05);
 
     if (Math.random() < rate) {
       pity = 0;
-
-      if (isLimited) {
-        if (Math.random() < 0.5) return pulls; // win 50/50
-      } else {
-        return pulls; // any 6★ counts
-      }
+      if (!isLimited || Math.random() < 0.5) return pulls;
     } else {
       pity++;
     }
 
     if (pity >= hardPity) {
       pity = 0;
-      if (isLimited) {
-        if (Math.random() < 0.5) return pulls;
-      } else {
-        return pulls;
-      }
+      if (!isLimited || Math.random() < 0.5) return pulls;
     }
   }
 

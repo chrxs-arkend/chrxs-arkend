@@ -1,0 +1,7 @@
+{
+  "base6StarRate": 0.008,
+  "softPityStart": 65,
+  "softPityIncrementPerPull": 0.05,
+  "fiveStarGuaranteeEvery": 10,
+  "oroPerPull": 500
+}
